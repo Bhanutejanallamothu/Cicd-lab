@@ -1,20 +1,14 @@
-# ---------- Build stage ----------
-FROM maven:3.9-eclipse-temurin-21 AS build
+FROM maven:3.9.9-eclipse-temurin-17
+
 WORKDIR /app
 
 COPY pom.xml .
-# Cache deps to speed up rebuilds
-RUN --mount=type=cache,target=/root/.m2 mvn -B -DskipTests dependency:go-offline
+RUN mvn dependency:go-offline -B
 
 COPY src ./src
-RUN --mount=type=cache,target=/root/.m2 mvn -B -DskipTests clean install package
 
-# ---------- Run stage ----------
-FROM eclipse-temurin:21-jre-alpine
-WORKDIR /app
+RUN rm -rf /root/.m2/repository/io/jsonwebtoken && \
+    mvn clean package -DskipTests
 
-COPY --from=build /app/target/*.jar app.jar
-
-ENV JAVA_OPTS=""
 EXPOSE 8081
-ENTRYPOINT ["sh","-c","java $JAVA_OPTS -jar app.jar"]
+ENTRYPOINT ["java", "-jar", "target/carrental-0.0.1-SNAPSHOT.jar"]
